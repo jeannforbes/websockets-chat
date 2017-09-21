@@ -11,22 +11,76 @@
          You can disable that on the server if desired
     -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"></script>
-	<style>
-		textarea {
-			display: block;
-			background-color: #EEEEEE;
-		}
-	</style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser-polyfill.min.js"></script>
+    <style>
+        textarea {
+            display: block;
+            background-color: #EEEEEE;
+        }
+    </style>
 </head>
 <body>
-	<label for="user">Username:</label>
-	<input id="username" name="user" type="text"/>
-	<input id="connect" type='button' value='connect'/>
-	<br/>
-	<label for="message">Message:</label>
-	<input id="message" name="message" type="text"/>
-	<input id="send" type="button" value="send" />
-	
-	<textarea id="chat" rows="20" cols="40" readonly> </textarea>
+    <label for="user">Username:</label>
+    <input id="username" name="user" type="text"/>
+    <input id="connect" type='button' value='connect'/>
+    <br/>
+    <label for="message">Message:</label>
+    <input id="message" name="message" type="text"/>
+    <input id="send" type="button" value="send" />
+    
+    <textarea id="chat" rows="20" cols="40" readonly> </textarea>
 </body>
+
+<script src='/socket.io/socket.io.js'></script>
+<!--<script src='https://cdnjs.cloudflare.com/ajax/libs/babel'></script>-->
+<script type='text/babel'>
+    const connectSocket = (e) => {
+        const message = document.querySelector('#message');
+        const chat = document.querySelector('#chat');
+        const sock = io.connect();
+
+        sock.on('connect', () => {
+            console.log('connecting');
+
+            let user = document.querySelector('#username').value;
+
+            if(!user){ 
+                user = 'anonymous'; 
+            }
+
+            sock.emit('join', {name: user});
+            sock.emit('msgToServer', {msg: '/online'});
+        });
+
+        document.querySelector('#send').addEventListener('click', function(e){
+            let text = message.value;
+            if(text.length > 0){
+                sock.emit('msgToServer', { 
+                    msg: text
+                });
+            }
+        });
+
+        sock.on('msg', (data) => {
+            if(data.msg.length <= 0) return;
+            if(data.name) chat.value += data.name+': ';
+            chat.value += data.msg+'\n';
+        });
+
+        sock.on('ping', (data) => {
+            console.log('pong');
+            sock.emit('msgToServer', {msg: '/pong'});
+        });
+    };
+
+    const init = () => {
+        const username = document.querySelector('#username');
+        const connect = document.querySelector('#connect');
+
+        connect.addEventListener('click', connectSocket);
+    };
+
+    window.onload = init;
+</script>
+
 </html>
